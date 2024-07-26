@@ -7,8 +7,8 @@ public class RefreshTokenRequest {
 		return refreshToken;
 	}
 
-	public void setRefreshToken(String refreshToken) {
-		this.refreshToken = refreshToken;
+	public String setRefreshToken(String refreshToken) {
+		return this.refreshToken = refreshToken;
 	}
 
 }

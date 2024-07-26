@@ -1,7 +1,5 @@
 package com.spring.authentication.controller;
 
-import java.util.HashMap;
-
 import javax.naming.AuthenticationException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +19,6 @@ import com.spring.authentication.dtos.SignInDto;
 import com.spring.authentication.dtos.SignUpDto;
 import com.spring.authentication.entity.User;
 import com.spring.authentication.exceptions.InvalidJwtException;
-import com.spring.authentication.repository.UserRepository;
 import com.spring.authentication.service.AuthService;
 import com.spring.authentication.util.Constants;
 
@@ -38,10 +35,9 @@ public class AuthController {
 	  private AuthenticationManager authenticationManager;
 	
 	  @Autowired
-	  private TokenProvider tokenService;
+	  private TokenProvider tokenProvider;
 	  
-	  @Autowired
-	  private UserRepository userRepository;
+	
 	  
 
 	@PostMapping("/signup")
@@ -56,8 +52,9 @@ public class AuthController {
     public ResponseDto signIn(@RequestBody @Validated SignInDto data) throws AuthenticationException {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.getLogin(), data.getPassword());
 		var authUser = authenticationManager.authenticate(usernamePassword);
-		var accessToken = tokenService.generateAccessToken((User) authUser.getPrincipal());
-		var refreshToken = tokenService.generateRefreshAccessToken(new HashMap<>(), (User) authUser.getPrincipal());
+		var accessToken = tokenProvider.generateAccessToken((User) authUser.getPrincipal());
+		//var refreshToken = tokenProvider.generateRefreshAccessToken(new HashMap<>(), (User) authUser.getPrincipal());
+		var refreshToken=tokenProvider.generateRefreshToken((User) authUser.getPrincipal());
 
 		return ResponseDto.builder()
 				.message(Constants.SIGNIN)
@@ -67,32 +64,50 @@ public class AuthController {
     }
 
 	
-
-	@PostMapping("/refresh")
-	public JwtDto refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
-	    try {
-	        String username = tokenService.extractUserName(refreshTokenRequest.getRefreshToken());
-	        User user = (User) userRepository.findByLogin(username);
-
-	        if (tokenService.isTokenValid(refreshTokenRequest.getRefreshToken(), user)) {
-	            String jwt = tokenService.generateAccessToken(user);
-	            JwtDto jwtDto=new JwtDto();
-	            jwtDto.setAccessToken(jwt);
-	            jwtDto.setRefreshToken(refreshTokenRequest.getRefreshToken());
-	            
-	           
-	            return jwtDto;
-	        }
-
-	        throw new RuntimeException("Invalid token");
-	    } catch (RuntimeException e) {
-
-	        System.err.println(e.getMessage());
-
-	        return null;
-	    }
 	
-	}
+	@PostMapping("/refresh")
+    public ResponseDto refreshAccessToken(@RequestBody RefreshTokenRequest request) {
+        try {
+            String newAccessToken = tokenProvider.refreshAccessToken(request.getRefreshToken());
+            String refreshToken = request.setRefreshToken(newAccessToken);
+            return ResponseDto.builder().message(Constants.CREATED).data(refreshToken).statusCode(200).build();
+        } catch (Exception e) {
+            return ResponseDto.builder().statusCode(401).message("Invalid refresh token").build();
+            
+        }
+    }
+	
+	
+	
+	
+//	@PostMapping("/refresh")
+//	public JwtDto refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+//	    try {
+//	        String username = tokenService.extractUserName(refreshTokenRequest.getRefreshToken());
+//	        User user = (User) userRepository.findByLogin(username);
+//
+//	        if (tokenService.isTokenValid(refreshTokenRequest.getRefreshToken(), user)) {
+//	            String jwt = tokenService.generateAccessToken(user);
+//	            JwtDto jwtDto=new JwtDto();
+//	            jwtDto.setAccessToken(jwt);
+//	            jwtDto.setRefreshToken(refreshTokenRequest.getRefreshToken());
+//	            
+//	           
+//	            return jwtDto;
+//	        }
+//
+//	        throw new RuntimeException("Invalid token");
+//	    } catch (RuntimeException e) {
+//
+//	        System.err.println(e.getMessage());
+//
+//	        return null;
+//	    }
+//	
+//	}
+
+
+
 
 	
 
