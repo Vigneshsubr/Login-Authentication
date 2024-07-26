@@ -10,11 +10,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.spring.authentication.config.TokenProvider;
-
+import com.spring.authentication.dtos.ResponseDto;
 import com.spring.authentication.dtos.SignUpDto;
 import com.spring.authentication.entity.User;
 import com.spring.authentication.exceptions.InvalidJwtException;
 import com.spring.authentication.repository.UserRepository;
+import com.spring.authentication.util.Constants;
 
 @Service
 @Lazy
@@ -36,7 +37,7 @@ public class AuthService implements UserDetailsService {
 	}
 
 
-	public UserDetails signUp(SignUpDto data) throws InvalidJwtException {
+	public ResponseDto signUp(SignUpDto data) throws InvalidJwtException {
 		if(userRepository.findByLogin(data.getLogin())!=null) {
 			throw new InvalidJwtException("User all ready exists");
 			
@@ -50,7 +51,11 @@ public class AuthService implements UserDetailsService {
 		 user.setLogin(data.getLogin());
 		 user.setPassword(encryptedPassword);
 		 user.setRole(data.getRole());
-		 return userRepository.save(user);
+		 return ResponseDto.builder()
+				 .message(Constants.CREATED)
+				 .data(userRepository.save(user))
+				 .statusCode(200)
+				 .build();
 
 		
 	}

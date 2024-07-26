@@ -28,13 +28,16 @@ public class TokenProvider {
 	 @Value("${security.jwt.secret-key}")	
 	  String secretKey ;
 	 
+	 
+	 
+	 
 	 public String generateAccessToken(User user) {
 		    try {
 		      Algorithm algorithm = Algorithm.HMAC256(secretKey);
 		      return JWT.create()
 		          .withSubject(user.getUsername())
 		          .withClaim("username", user.getUsername())
-		          .withExpiresAt(genAccessExpirationDate())
+		          .withIssuedAt(genAccessExpirationDate())
 		          .sign(algorithm);
 		    } catch (JWTCreationException exception) {
 		      throw new JWTCreationException("Error while generating token", exception);
@@ -65,7 +68,7 @@ public class TokenProvider {
 		      return JWT.create()
 		          .withSubject(user.getUsername())
 		          .withClaim("username", user.getUsername())
-		          .withExpiresAt(genAccessExpirationDate())
+		          .withExpiresAt(genAccessExpirationDate().plusSeconds(7200))
 		          .sign(algorithm);
 		    } catch (JWTCreationException exception) {
 		      throw new JWTCreationException("Error while generating refreshtoken", exception);
@@ -74,25 +77,25 @@ public class TokenProvider {
 	 
 	 
 	 
-	// Extract all claims from the token
+
 	    private DecodedJWT extractAllClaims(String token) throws JWTVerificationException {
 	        Algorithm algorithm = Algorithm.HMAC256(secretKey);
 	        return JWT.require(algorithm).build().verify(token);
 	    }
 
-	    // Extract a specific claim using the claimsResolver function
+
 	    private <T> T extractClaim(String token, ClaimResolver<T> claimResolver) throws JWTVerificationException {
 	        DecodedJWT decodedJWT = extractAllClaims(token);
 	        Map<String, Claim> claimsMap = decodedJWT.getClaims();
 	        return claimResolver.apply(claimsMap);
 	    }
 
-	    // Extract username claim from the token
+
 	    public String extractUserName(String token) throws JWTVerificationException {
 	        return extractClaim(token, claims -> claims.get("sub").asString());
 	    }
 
-	    // Check if the token is valid for the given user
+
 	    public boolean isTokenValid(String token, UserDetails user) {
 	        try {
 	            final String username = extractUserName(token);
@@ -102,13 +105,13 @@ public class TokenProvider {
 	        }
 	    }
 
-	    // Check if the token has expired
+
 	    private boolean isTokenExpired(String token) throws JWTVerificationException {
 	        Object expirationDate = extractClaim(token, claims -> claims.get("exp").asDate());
 	        return expirationDate != null && ((java.util.Date) expirationDate).before(new Date(0));
 	    }
 
-	    // Functional interface for resolving claims
+
 	    @FunctionalInterface
 	    interface ClaimResolver<T> {
 	        T apply(Map<String, Claim> claims);
@@ -117,6 +120,5 @@ public class TokenProvider {
 	private Instant genAccessExpirationDate() {
 		    return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
 		  }
-
-
+	
 }
